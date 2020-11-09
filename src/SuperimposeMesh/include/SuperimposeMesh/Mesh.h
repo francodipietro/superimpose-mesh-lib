@@ -40,6 +40,8 @@ public:
 
     void Draw(Shader shader);
 
+    void Draw_instanced(Shader shader, int N);
+
 private:
     GLuint VAO_;
 

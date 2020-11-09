@@ -19,6 +19,9 @@ set(${LIBRARY_TARGET_NAME}_SRC
       src/Shader.cpp
       src/SICAD.cpp
       src/SISkeleton.cpp
+      shader/shader_model.vert
+      shader/shader_model_texture.frag
+      shader/shader_model.frag
 )
 
 # List of header files
