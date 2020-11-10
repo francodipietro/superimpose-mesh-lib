@@ -173,6 +173,7 @@ public:
      **/
     bool superimpose(const ModelPoseContainer& objpos_map, const double* cam_x, const double* cam_o, cv::Mat& img) override;
 
+    bool superimpose_instancing(const std::vector<ModelPoseContainer>& objpos_multimap, const double* cam_x, const double* cam_o, cv::Mat& img, int N);
     /**
      * Render the mesh models in the pose specified in each element of `objpos_multimap` and move the virtual camera in
      * `cam_x` position with orientation `cam_o`. Each group of meshes specified by the elements of `objpos_multimap` are rendered in a

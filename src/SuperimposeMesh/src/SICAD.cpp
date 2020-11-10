@@ -485,28 +485,29 @@ bool SICAD::superimpose
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* Draw the background picture. */
-    if (getBackgroundOpt())
-        renderBackground(img);
+    //if (getBackgroundOpt())
+    //    renderBackground(img);
 
     /* View mesh filled or as wireframe. */
-    setWireframe(getWireframeOpt());
+    //setWireframe(getWireframeOpt());
 
     /* View transformation matrix. */
     glm::mat4 view = getViewTransformationMatrix(cam_x, cam_o);
 
     /* Install/Use the program specified by the shader. */
+    /*
     shader_cad_->install();
     glUniformMatrix4fv(glGetUniformLocation(shader_cad_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
     shader_cad_->uninstall();
-
+    */
     shader_mesh_texture_->install();
     glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
     shader_mesh_texture_->uninstall();
-
+    /*
     shader_frame_->install();
     glUniformMatrix4fv(glGetUniformLocation(shader_frame_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
     shader_frame_->uninstall();
-
+    */
     /* Model transformation matrix. */
     for (const ModelPoseContainerElement& pair : objpos_map)
     {
@@ -553,20 +554,33 @@ bool SICAD::superimpose
     /* Read before swap. glReadPixels read the current framebuffer, i.e. the back one. */
     /* See: http://stackoverflow.com/questions/16809833/opencv-image-loading-for-opengl-texture#16812529
        and http://stackoverflow.com/questions/9097756/converting-data-from-glreadpixels-to-opencvmat#9098883 */
+/*
     cv::Mat ogl_pixel(framebuffer_height_ / tiles_rows_, framebuffer_width_ / tiles_cols_, CV_8UC3);
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, (ogl_pixel.step & 3) ? 1 : 4);
     glPixelStorei(GL_PACK_ROW_LENGTH, ogl_pixel.step/ogl_pixel.elemSize());
     glReadPixels(0, framebuffer_height_ - tile_img_height_, tile_img_width_, tile_img_height_, GL_BGR, GL_UNSIGNED_BYTE, ogl_pixel.data);
+    //cv::flip(ogl_pixel, img, 0);
+    img = ogl_pixel;
+*/
 
-    cv::flip(ogl_pixel, img, 0);
+    cv::Mat ogl_pixel(framebuffer_height_ / tiles_rows_, framebuffer_width_ / tiles_cols_, CV_8UC1);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, pbo_[0]);
+    glBufferData(GL_PIXEL_PACK_BUFFER_ARB, framebuffer_width_/tiles_cols_ * framebuffer_height_/ tiles_rows_ * 1, 0, GL_STREAM_READ);
+    glReadBuffer(GL_PIXEL_PACK_BUFFER_ARB);
+    glReadPixels(0, 0, tile_img_width_, tile_img_height_, GL_RED, GL_UNSIGNED_BYTE, 0);
+    ogl_pixel.data = (uchar*) glMapBufferARB(GL_PIXEL_PACK_BUFFER_ARB, GL_READ_ONLY_ARB);
+    img = ogl_pixel.clone();
+
 
     /* Swap the buffers. */
+    //glfwSwapInterval(0);
     glfwSwapBuffers(window_);
 
     pollOrPostEvent();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_PIXEL_PACK_BUFFER_ARB, 0);
 
     glfwMakeContextCurrent(nullptr);
 
@@ -594,17 +608,19 @@ bool SICAD::superimpose
     glm::mat4 view = getViewTransformationMatrix(cam_x, cam_o);
 
     /* Install/Use the program specified by the shader. */
+    /*
     shader_cad_->install();
     glUniformMatrix4fv(glGetUniformLocation(shader_cad_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
     shader_cad_->uninstall();
-
+    */
     shader_mesh_texture_->install();
     glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
     shader_mesh_texture_->uninstall();
-
+    /*
     shader_frame_->install();
     glUniformMatrix4fv(glGetUniformLocation(shader_frame_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
     shader_frame_->uninstall();
+    */
 
     for (unsigned int i = 0; i < tiles_rows_; ++i)
     {
@@ -614,21 +630,24 @@ bool SICAD::superimpose
             int idx = i * tiles_cols_ + j;
 
             /* Render starting by the upper-left-most tile of the render grid, proceding by columns and rows. */
+            /*
             glViewport(tile_img_width_ * j, framebuffer_height_ - (tile_img_height_ * (i + 1)),
                        tile_img_width_    , tile_img_height_                                   );
             glScissor (tile_img_width_ * j, framebuffer_height_ - (tile_img_height_ * (i + 1)),
                        tile_img_width_    , tile_img_height_                                   );
-
+            */
+            glViewport(tile_img_width_ * j, tile_img_height_ * (i + 0),
+                       tile_img_width_    , tile_img_height_                                   );
+            glScissor (tile_img_width_ * j, tile_img_height_ * (i + 0),
+                       tile_img_width_    , tile_img_height_                                   );
             /* Clear the colorbuffer. */
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
             /* Draw the background picture. */
-            if (getBackgroundOpt())
-                renderBackground(img);
-
+            //if (getBackgroundOpt())
+            //    renderBackground(img);
             /* View mesh filled or as wireframe. */
-            setWireframe(getWireframeOpt());
+            //setWireframe(getWireframeOpt());
 
             /* Install/Use the program specified by the shader. */
             for (const ModelPoseContainerElement& pair : objpos_multimap[idx])
@@ -641,35 +660,176 @@ bool SICAD::superimpose
                 model[3][2] = static_cast<float>(pose[2]);
 
                 auto iter_model = model_obj_.find(pair.first);
-                if (iter_model != model_obj_.end())
+                shader_mesh_texture_->install();
+                glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+                (iter_model->second)->Draw(*shader_mesh_texture_);
+
+                shader_mesh_texture_->uninstall();
+            }
+        }
+    }
+
+    /* Read before swap. glReadPixels read the current framebuffer, i.e. the back one. */
+    /* See: http://stackoverflow.com/questions/16809833/opencv-image-loading-for-opengl-texture#16812529
+       and http://stackoverflow.com/questions/9097756/converting-data-from-glreadpixels-to-opencvmat#9098883 */
+/*
+    cv::Mat ogl_pixel(framebuffer_height_, framebuffer_width_, CV_8UC3);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glPixelStorei(GL_PACK_ALIGNMENT, (ogl_pixel.step & 3) ? 1 : 4);
+    glPixelStorei(GL_PACK_ROW_LENGTH, ogl_pixel.step/ogl_pixel.elemSize());
+    glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_RGB, GL_UNSIGNED_BYTE, ogl_pixel.data);
+    cv::flip(ogl_pixel, img, 0);
+    //img = ogl_pixel.clone();
+    //ogl_pixel.copyTo(img);
+*/
+
+    cv::Mat ogl_pixel(framebuffer_height_, framebuffer_width_, CV_8UC1);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, pbo_[0]);
+    glBufferData(GL_PIXEL_PACK_BUFFER_ARB, framebuffer_width_ * framebuffer_height_ * 1, 0, GL_STREAM_READ);
+    //glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
+    glReadBuffer(GL_PIXEL_PACK_BUFFER_ARB);
+    glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_RED, GL_UNSIGNED_BYTE, 0);
+    ogl_pixel.data = (uchar*) glMapBufferARB(GL_PIXEL_PACK_BUFFER_ARB, GL_READ_ONLY_ARB);
+    img = ogl_pixel;
+
+    /* Swap the buffers. */
+    //glfwSwapInterval(0);
+    glfwSwapBuffers(window_);
+
+    pollOrPostEvent();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, 0);
+    //glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glfwMakeContextCurrent(nullptr);
+
+    return true;
+}
+
+
+bool SICAD::superimpose_instancing
+(
+    const std::vector<ModelPoseContainer>& objpos_multimap,
+    const double* cam_x,
+    const double* cam_o,
+    cv::Mat& img,
+    int N
+)
+{
+    /* Model transformation matrix. */
+    const int objpos_num = objpos_multimap.size();
+    if (objpos_num != tiles_num_) return false;
+
+    glfwMakeContextCurrent(window_);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_);
+
+    /* View transformation matrix. */
+    glm::mat4 view = getViewTransformationMatrix(cam_x, cam_o);
+
+    /* Install/Use the program specified by the shader. */
+    /*
+    shader_cad_->install();
+    glUniformMatrix4fv(glGetUniformLocation(shader_cad_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
+    shader_cad_->uninstall();
+    */
+    shader_mesh_texture_->install();
+    glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
+    shader_mesh_texture_->uninstall();
+    /*
+    shader_frame_->install();
+    glUniformMatrix4fv(glGetUniformLocation(shader_frame_->get_program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
+    shader_frame_->uninstall();
+    */
+
+    glm::vec2 translations[N];
+    glm::mat4* modelMatrices;
+    modelMatrices = new glm::mat4[N];
+
+    int xinf, xsup, yinf, ysup;
+    xsup = tile_img_width_ * tiles_cols_ /2 - tile_img_width_/2;
+    xinf = -xsup;
+    ysup = tile_img_height_ * tiles_rows_ /2 - tile_img_height_/2;
+    yinf = -ysup;
+    int index = 0;
+    for(int y = yinf; y <= ysup; y += tile_img_height_)
+    {
+        for(int x = xinf; x <= xsup; x += tile_img_width_)
+        {
+            glm::vec2 translation;
+            translation.x = (float)x/framebuffer_width_*2;
+            translation.y = (float)y/framebuffer_height_*2;
+            translations[index++] = translation;
+        }
+    }
+
+    glViewport(0, 0, framebuffer_width_, framebuffer_height_);
+    glScissor(0, 0, framebuffer_width_, framebuffer_height_);
+    /* Clear the colorbuffer. */
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    for (unsigned int i = 0; i < tiles_rows_; ++i)
+    {
+        for (unsigned int j = 0; j < tiles_cols_; ++j)
+        {
+            /* Multimap index */
+            int idx = i * tiles_cols_ + j;
+
+            /* Draw the background picture. */
+            //if (getBackgroundOpt())
+            //    renderBackground(img);
+            /* View mesh filled or as wireframe. */
+            //setWireframe(getWireframeOpt());
+
+            /* Install/Use the program specified by the shader. */
+            for (const ModelPoseContainerElement& pair : objpos_multimap[idx])
+            {
+                const double* pose = pair.second.data();
+
+                glm::mat4 model = glm::rotate(glm::mat4(1.0f), static_cast<float>(pose[6]), glm::vec3(static_cast<float>(pose[3]), static_cast<float>(pose[4]), static_cast<float>(pose[5])));
+                model[3][0] = static_cast<float>(pose[0]);
+                model[3][1] = static_cast<float>(pose[1]);
+                model[3][2] = static_cast<float>(pose[2]);
+                model = glm::scale(model, glm::vec3(1.0/tiles_cols_, 1.0/tiles_rows_, 1/3.0)); // 0.5 due to half sized image
+                //model = glm::scale(model, glm::vec3(0.5));
+                modelMatrices[idx] = model;
+
+                if(idx == N-1)
                 {
-                    if ((iter_model->second)->has_texture())
+                    auto iter_model = model_obj_.find(pair.first);
+                    if (iter_model != model_obj_.end())
                     {
-                        shader_mesh_texture_->install();
-                        glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+                        if ((iter_model->second)->has_texture())
+                        {
+                            shader_mesh_texture_->install();
+                            glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+                            glUniform2fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "offsets"), N, glm::value_ptr(translations[0]));
+                            glUniformMatrix4fv(glGetUniformLocation(shader_mesh_texture_->get_program(), "models"), N, GL_FALSE, glm::value_ptr(modelMatrices[0]));
+                            (iter_model->second)->Draw_instanced(*shader_mesh_texture_, N);
 
-                        (iter_model->second)->Draw(*shader_mesh_texture_);
+                            shader_mesh_texture_->uninstall();
+                        }
+                        else
+                        {
+                            shader_cad_->install();
+                            glUniformMatrix4fv(glGetUniformLocation(shader_cad_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-                        shader_mesh_texture_->uninstall();
+                            (iter_model->second)->Draw(*shader_cad_);
+
+                            shader_cad_->uninstall();
+                        }
                     }
-                    else
+                    else if (pair.first == "frame")
                     {
-                        shader_cad_->install();
-                        glUniformMatrix4fv(glGetUniformLocation(shader_cad_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-                        (iter_model->second)->Draw(*shader_cad_);
-
-                        shader_cad_->uninstall();
+                        shader_frame_->install();
+                        glUniformMatrix4fv(glGetUniformLocation(shader_frame_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+                        glBindVertexArray(vao_frame_);
+                        glDrawArrays(GL_LINES, 0, 6);
+                        glBindVertexArray(0);
+                        shader_frame_->uninstall();
                     }
-                }
-                else if (pair.first == "frame")
-                {
-                    shader_frame_->install();
-                    glUniformMatrix4fv(glGetUniformLocation(shader_frame_->get_program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
-                    glBindVertexArray(vao_frame_);
-                    glDrawArrays(GL_LINES, 0, 6);
-                    glBindVertexArray(0);
-                    shader_frame_->uninstall();
                 }
             }
         }
@@ -678,21 +838,35 @@ bool SICAD::superimpose
     /* Read before swap. glReadPixels read the current framebuffer, i.e. the back one. */
     /* See: http://stackoverflow.com/questions/16809833/opencv-image-loading-for-opengl-texture#16812529
        and http://stackoverflow.com/questions/9097756/converting-data-from-glreadpixels-to-opencvmat#9098883 */
+/*
     cv::Mat ogl_pixel(framebuffer_height_, framebuffer_width_, CV_8UC3);
+
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, (ogl_pixel.step & 3) ? 1 : 4);
     glPixelStorei(GL_PACK_ROW_LENGTH, ogl_pixel.step/ogl_pixel.elemSize());
-    glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_BGR, GL_UNSIGNED_BYTE, ogl_pixel.data);
-
+    glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_RGB, GL_UNSIGNED_BYTE, ogl_pixel.data);
     cv::flip(ogl_pixel, img, 0);
+*/
+
+    cv::Mat ogl_pixel(framebuffer_height_, framebuffer_width_, CV_8UC3);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, pbo_[0]);
+    glBufferData(GL_PIXEL_PACK_BUFFER_ARB, framebuffer_width_ * framebuffer_height_ * 3, 0, GL_STREAM_READ);
+    //glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
+    glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_BGR, GL_UNSIGNED_BYTE, 0);
+    ogl_pixel.data = (uchar*) glMapBufferARB(GL_PIXEL_PACK_BUFFER_ARB, GL_READ_ONLY_ARB);
+    img = ogl_pixel.clone();
+    //ogl_pixel.copyTo(img);
+
+    //glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, 0);
 
     /* Swap the buffers. */
+    //glfwSwapInterval(0);
     glfwSwapBuffers(window_);
 
     pollOrPostEvent();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     glfwMakeContextCurrent(nullptr);
 
     return true;
@@ -837,6 +1011,7 @@ bool SICAD::superimpose
     glReadPixels(0, framebuffer_height_ - tile_img_height_, tile_img_width_, tile_img_height_, GL_BGR, GL_UNSIGNED_BYTE, 0);
 
     /* Swap the buffers. */
+    glfwSwapInterval(0);
     glfwSwapBuffers(window_);
 
     pollOrPostEvent();
@@ -949,6 +1124,7 @@ bool SICAD::superimpose
     glReadPixels(0, framebuffer_height_ - tile_img_height_, tile_img_width_, tile_img_height_, GL_BGR, GL_UNSIGNED_BYTE, 0);
 
     /* Swap the buffers. */
+    glfwSwapInterval(0);
     glfwSwapBuffers(window_);
 
     pollOrPostEvent();
@@ -1069,6 +1245,7 @@ bool SICAD::superimpose
     glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_BGR, GL_UNSIGNED_BYTE, 0);
 
     /* Swap the buffers. */
+    glfwSwapInterval(0);
     glfwSwapBuffers(window_);
 
     pollOrPostEvent();
@@ -1194,6 +1371,7 @@ bool SICAD::superimpose
     glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_BGR, GL_UNSIGNED_BYTE, 0);
 
     /* Swap the buffers. */
+    glfwSwapInterval(0);
     glfwSwapBuffers(window_);
 
     pollOrPostEvent();
@@ -1283,6 +1461,7 @@ bool SICAD::setProjectionMatrix
     glUniformMatrix4fv(glGetUniformLocation(shader_frame_->get_program(), "projection"), 1, GL_FALSE, glm::value_ptr(projection_));
     shader_frame_->uninstall();
 
+    glfwSwapInterval(0);
     glfwSwapBuffers(window_);
     glfwMakeContextCurrent(nullptr);
 
@@ -1362,8 +1541,8 @@ glm::mat4 SICAD::getViewTransformationMatrix(const double* cam_x, const double* 
                                         static_cast<float>(cam_o[3]), glm::vec3(static_cast<float>(cam_o[0]), static_cast<float>(cam_o[1]), static_cast<float>(cam_o[2])));
 
     glm::mat4 view = glm::lookAt(glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z),
-                                 glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z) + glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, 0.0f, -1.0f),
-                                 glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, 1.0f, 0.0f));
+                                 glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z) + glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, 0.0f, 1.0f),
+                                 glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, -1.0f, 0.0f));
 
     return view;
 }
