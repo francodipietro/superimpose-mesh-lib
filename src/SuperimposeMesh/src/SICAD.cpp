@@ -1541,9 +1541,14 @@ glm::mat4 SICAD::getViewTransformationMatrix(const double* cam_x, const double* 
                                         static_cast<float>(cam_o[3]), glm::vec3(static_cast<float>(cam_o[0]), static_cast<float>(cam_o[1]), static_cast<float>(cam_o[2])));
 
     glm::mat4 view = glm::lookAt(glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z),
+                                     glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z) + glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, 0.0f, -1.0f),
+                                     glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, 1.0f, 0.0f));
+
+    /*
+    glm::mat4 view = glm::lookAt(glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z),
                                  glm::vec3(root_cam_t[3].x, root_cam_t[3].y, root_cam_t[3].z) + glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, 0.0f, 1.0f),
                                  glm::mat3(cam_to_root) * ogl_to_cam_ * glm::vec3(0.0f, -1.0f, 0.0f));
-
+    */
     return view;
 }
 
