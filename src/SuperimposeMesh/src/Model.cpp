@@ -33,14 +33,6 @@ void Model::Draw(Shader shader)
 }
 
 
-void Model::Draw_instanced(Shader shader, int N)
-{
-    for(GLuint i = 0; i < meshes_.size(); i++)
-    {
-        meshes_[i].Draw_instanced(shader, N);
-    }
-}
-
 bool Model::has_texture()
 {
     return (textures_loaded_.size() > 0 ? true : false);

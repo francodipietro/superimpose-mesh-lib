@@ -15,11 +15,5 @@ uniform sampler2D texture_diffuse1;
 
 void main()
 {
-    color = texture(texture_diffuse1, TexCoords);
-    // Transform to grayscale keeping 3 ch
-    /*
-    vec4 c =  texture(texture_diffuse1, TexCoords);
-    float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));
-    color = vec4(vec3(gray), 1.0);
-    */
+     color = texture(texture_diffuse1, TexCoords);
 }

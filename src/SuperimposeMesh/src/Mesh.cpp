@@ -27,11 +27,6 @@ Mesh::Mesh
     glGenVertexArrays(1, &VAO_);
     glGenBuffers(1, &VBO_);
     glGenBuffers(1, &EBO_);
-    /*
-    unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glm::vec2 ofst = glm::vec2( 0.5, 0.5);
-    */
 
     glBindVertexArray(VAO_);
 
@@ -53,17 +48,6 @@ Mesh::Mesh
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*) (2 * sizeof(glm::vec3)));
     glEnableVertexAttribArray(2);
 
-    //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)sizeof(glm::vec2));
-    //glEnableVertexAttribArray(2);
-    /*
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) , &ofst[0], GL_STATIC_DRAW);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
-    //glEnableVertexAttribArray(2);
-    glVertexAttribDivisor(2, 1);
-    glEnableVertexAttribArray(2);
-    */
     glBindVertexArray(0);
 }
 
@@ -104,45 +88,5 @@ void Mesh::Draw(Shader shader)
     /* Draw mesh. */
     glBindVertexArray(VAO_);
     glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-}
-
-void Mesh::Draw_instanced(Shader shader, int N)
-{
-    /* FIXME
-     * This part of code assumes that the fragment shader has several uniform variables with names
-     *  - texture_diffuse<number>
-     *  - texture_specular<number>
-     */
-    GLuint diffuseNr = 1;
-    GLuint specularNr = 1;
-    for (GLuint i = 0; i < textures_.size(); ++i)
-    {
-        /* Activate proper texture unit before binding. */
-        glActiveTexture(GL_TEXTURE0 + i);
-
-        /* Retrieve texture number (the N in diffuse_textureN). */
-        std::string number;
-        std::string name = textures_[i].type;
-
-        /* Transfer GLuint to stream. */
-        if (name == "texture_diffuse")
-        {
-            number = std::to_string(diffuseNr++);
-        }
-        else if (name == "texture_specular")
-        {
-            number = std::to_string(specularNr++);
-        }
-
-        glUniform1i(glGetUniformLocation(shader.get_program(), (name + number).c_str()), i);
-        glBindTexture(GL_TEXTURE_2D, textures_[i].id);
-    }
-    glActiveTexture(GL_TEXTURE0);
-
-    /* Draw mesh. */
-    glBindVertexArray(VAO_);
-    glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0);
-    glDrawElementsInstanced(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0, N);
     glBindVertexArray(0);
 }

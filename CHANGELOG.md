@@ -1,8 +1,5 @@
 # 📜 SuperimposeMesh changelog
 
-## 🔖 Version 0.11.100
-
-
 ## 🔖 Version 0.10.0
 ##### `Changed behavior`
  - SICAD constructs now always require the intrinsic camera parameters.
