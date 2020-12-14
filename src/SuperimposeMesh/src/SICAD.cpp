@@ -153,6 +153,8 @@ SICAD::SICAD
     if (glewInit() != GLEW_OK)
         throw std::runtime_error("ERROR::SICAD::CTOR\nERROR:\n\tFailed to initialize GLEW.");
 
+    /* Swap buffers immediately when calling glfwSwapBuffers, without waiting for a refresh. */
+    glfwSwapInterval(0);
 
     /* Set GL property. */
     glfwPollEvents();
@@ -1285,6 +1287,15 @@ bool SICAD::setProjectionMatrix
     glfwMakeContextCurrent(nullptr);
 
     return true;
+}
+
+
+void SICAD::setOglToCam(const std::vector<float>& ogl_to_cam)
+{
+    if (ogl_to_cam.size() != 4)
+        throw std::runtime_error("ERROR::SICAD::setOglToCam\nERROR:\n\tWrong input size.\n\tShould be 4, was given " + std::to_string(ogl_to_cam.size()) + ".");
+
+    ogl_to_cam_ = glm::mat3(glm::rotate(glm::mat4(1.0f), ogl_to_cam[3], glm::make_vec3(ogl_to_cam.data())));
 }
 
 
